@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+uploads/
+.env
+.vscode/
+.idea/
+start.sh
