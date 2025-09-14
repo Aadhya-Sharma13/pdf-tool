@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Tools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .container {
+            max-width: 800px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="container bg-white rounded-xl shadow-lg p-8 space-y-8">
+        <header class="text-center space-y-2">
+            <h1 class="text-4xl font-extrabold text-gray-900">PDF Tools</h1>
+            <p class="text-gray-600">
+                Choose an option: compress a PDF or make it OCR readable.
+            </p>
+        </header>
+
+        <div class="w-full">
+            <label for="operation-select" class="block text-sm font-medium text-gray-700">Select Operation</label>
+            <select id="operation-select" name="operation"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                <option value="compress">Compress PDF (Reduce Size)</option>
+                <option value="ocr">OCR Readable PDF (Add Searchable Text)</option>
+            </select>
+        </div>
+
+        <div class="w-full flex justify-center">
+            <label for="pdf-upload"
+                class="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all duration-300">
+                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 16a4 4 0 01-4-4v-1a4 4 0 014-4h1a4 4 0 014 4v1a4 4 0 01-4 4zM16 16a4 4 0 01-4-4v-1a4 4 0 014-4h1a4 4 0 014 4v1a4 4 0 01-4 4zM16 12a4 4 0 00-4-4H8a4 4 0 00-4 4v1a4 4 0 004 4h4a4 4 0 004-4v-1z">
+                        </path>
+                    </svg>
+                    <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag
+                        and drop</p>
+                    <p class="text-xs text-gray-500">PDF file only</p>
+                </div>
+                <input id="pdf-upload" type="file" class="hidden" accept=".pdf" />
+            </label>
+        </div>
+
+        <div id="status-container" class="space-y-4">
+            <div id="loading-spinner" class="hidden text-center space-y-2">
+                <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+                <p id="status-text" class="text-gray-600">Uploading file...</p>
+            </div>
+
+            <div id="result-container" class="hidden">
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg relative"
+                    role="alert">
+                    <strong class="font-bold">Operation Successful!</strong>
+                    <span class="block sm:inline" id="file-stats"></span>
+                </div>
+                <div class="mt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <a id="download-link" href="#"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 text-center w-full sm:w-auto">
+                        Download Processed PDF
+                    </a>
+                </div>
+            </div>
+
+            <div id="error-message" class="hidden">
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+                    <strong class="font-bold">Error!</strong>
+                    <span class="block sm:inline" id="error-text"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const pdfUpload = document.getElementById('pdf-upload');
+        const operationSelect = document.getElementById('operation-select');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const statusText = document.getElementById('status-text');
+        const resultContainer = document.getElementById('result-container');
+        const fileStats = document.getElementById('file-stats');
+        const downloadLink = document.getElementById('download-link');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+
+        pdfUpload.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            hideAllMessages();
+            showLoading("Uploading file...");
+
+            const operation = operationSelect.value;
+            const formData = new FormData();
+            formData.append('pdf', file);
+            formData.append('operation', operation);
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    const originalSizeMB = (data.original_size / 1024 / 1024).toFixed(2);
+                    const processedSizeMB = (data.processed_size / 1024 / 1024).toFixed(2);
+
+                    if (operation === 'compress') {
+                        fileStats.textContent = `Original size: ${originalSizeMB} MB | Compressed size: ${processedSizeMB} MB`;
+                    } else if (operation === 'ocr') {
+                        fileStats.textContent = `Original size: ${originalSizeMB} MB | OCR size: ${processedSizeMB} MB`;
+                    }
+                    
+                    downloadLink.href = data.download_url;
+                    downloadLink.download = data.download_url.split('/').pop();
+                    showResult();
+                } else {
+                    const errorData = await response.json();
+                    showError(errorData.error || 'An unknown error occurred on the server.');
+                }
+            } catch (err) {
+                console.error('Fetch Error:', err);
+                showError('Could not connect to the server. Please try again later.');
+            }
+        });
+
+        function showLoading(message) {
+            loadingSpinner.classList.remove('hidden');
+            statusText.textContent = message;
+        }
+
+        function showError(message) {
+            errorMessage.classList.remove('hidden');
+            errorText.textContent = message;
+        }
+
+        function showResult() {
+            loadingSpinner.classList.add('hidden');
+            resultContainer.classList.remove('hidden');
+        }
+
+        function hideAllMessages() {
+            loadingSpinner.classList.add('hidden');
+            resultContainer.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+        }
+    </script>
+</body>
+
+</html>
