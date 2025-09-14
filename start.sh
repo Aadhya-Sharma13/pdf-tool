@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# Exit immediately if a command exits with a non-zero status
+# Exit if any command fails
 set -e
 
-# Update package lists
-apt-get update
+# Update package lists with sudo
+sudo apt-get update
 
-# Install Ghostscript, Tesseract OCR, and Poppler utilities
-apt-get install -y ghostscript tesseract-ocr poppler-utils
+# Install system dependencies
+sudo apt-get install -y ghostscript tesseract-ocr poppler-utils
 
-# Install Python dependencies from requirements.txt
+# Upgrade pip and install Python packages
 pip install --upgrade pip
 pip install -r requirements.txt
 
