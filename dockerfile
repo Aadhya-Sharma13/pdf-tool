@@ -1,4 +1,4 @@
-# Use the official Python image as the base
+# Use the official Python 3.11 image as the base
 FROM python:3.11-slim
 
 # Set environment variables
@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y \
     poppler-utils \
  && rm -rf /var/lib/apt/lists/*
 
-# Set working directory inside the container
+# Set the working directory
 WORKDIR /app
 
-# Copy all project files
+# Copy all project files into the container
 COPY . /app
 
 # Install Python dependencies
